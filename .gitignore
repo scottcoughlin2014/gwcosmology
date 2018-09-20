@@ -41,6 +41,7 @@ pip-delete-this-directory.txt
 /docs/cli/*.png
 /docs/cli/examples/
 /docs/citing.rst
+/docs/savefig/
 
 # OS/editor files
 *.swp
