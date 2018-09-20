@@ -1,0 +1,64 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+Portfile
+.coverage
+.eggs/
+
+debian/changelog
+gwpy.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Sphinx documentation
+/docs/_build
+/docs/_generated
+/docs/lal*.tag
+/docs/*.inv
+/docs/api/
+/docs/cli/*.png
+/docs/cli/examples/
+/docs/citing.rst
+
+# OS/editor files
+*.swp
+.DS_Store
+.idea
+
+# Examples output
+/examples/*.png
+/examples/*/*.png
+/docs/examples/*/*.rst
+
+# Patches
+/*.patch
+
+# py.test cache dir
+/.cache
+/.pytest_cache/
+
+# dqsegdb files
+__dqsegdb*.json
+__segments*.json
