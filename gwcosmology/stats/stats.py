@@ -49,7 +49,7 @@ def HDI(credint, y, x):
     HDI_lowTailPr = fmin(intervalWidth, 1.-credint)[0]
     return ppf(HDI_lowTailPr), ppf(HDI_lowTailPr+credint)
 
-def MAP(y, x):
+def MAP(y, x, hmin=10, hmax=250):
     """Measure H0
 
     Parameters:
@@ -64,7 +64,7 @@ def MAP(y, x):
 
         H0
     """
-    sp = UnivariateSpline(x,y,s=0.)
-    x_highres = linspace(hmin,hmax,100000)
+    sp = UnivariateSpline(x, y, s=0.)
+    x_highres = linspace(hmin, hmax, 100000)
     y_highres = sp(x_highres)
     return x_highres[argmax(y_highres)]

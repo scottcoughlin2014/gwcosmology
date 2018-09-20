@@ -18,19 +18,20 @@ riess_h = 73.24
 sigma_riess_h = 1.74
 
 
-def measure_H0(z_mean, z_std, pd, hmin=10, hmax=250):
+def measure_H0(distance_posterior, z_mean=v_hubble/c, z_std=v_hubble_std/c,
+               hmin=10, hmax=250):
     """Measure H0
 
     Parameters:
+
+        distance_posterior (array):
+            required data channels.
 
         z_mean (float):
             trigger time of event to be processing
 
         z_std (float):
             length of data to be processed
-
-        pd (`list`):
-            required data channels.
 
         hmin (int, optional):
             sample rate of the data desired
@@ -51,6 +52,8 @@ def measure_H0(z_mean, z_std, pd, hmin=10, hmax=250):
         for j, d in enumerate(ds):
             #zs[i,j] = z_at_value(cosmo.luminosity_distance,d*u.Mpc*cosmo.H(0).value/(100*h))
             zs[i,j] = d*h/c
-        lh[i] = trapz(norm.pdf(zs[i],loc=z_mean,scale=z_std)*pd.evaluate(ds),ds)
+        lh[i] = trapz(norm.pdf(zs[i],
+                               loc=z_mean,scale=z_std) * 
+                      distance_posterior.evaluate(ds), ds)
     lh = lh/trapz(lh,hs)
     return hs, lh
