@@ -69,7 +69,6 @@ install_requires = [
     'matplotlib >= 1.2.0, != 2.1.0, != 2.1.1',
     'astropy >= 1.1.1, < 3.0.0 ; python_version < \'3\'',
     'astropy >= 1.1.1 ; python_version >= \'3\'',
-    'cosmolopy >= 0.1.104',
     'seaborn >= 0.9.0'
 ]
 

@@ -1,6 +1,5 @@
 from astropy import constants as const
 from numpy import *
-import cosmolopy.distance as cd
 from scipy.interpolate import splev, splrep, UnivariateSpline, interp1d
 from scipy.integrate import cumtrapz
 from scipy.stats import gaussian_kde, norm
