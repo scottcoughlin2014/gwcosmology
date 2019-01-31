@@ -1,59 +1,90 @@
-from astropy import constants as const
-from numpy import *
-from scipy.interpolate import splev, splrep, UnivariateSpline, interp1d
-from scipy.integrate import cumtrapz
-from scipy.stats import gaussian_kde, norm
-from astropy.cosmology import Planck15 as cosmo 
-from astropy.cosmology import z_at_value
+import numpy as np
+from scipy.interpolate import interp1d
+from scipy.stats import norm
+from astropy.cosmology import FlatLambdaCDM 
 import astropy.units as u
-import seaborn as sns
-from scipy.optimize import fmin
+import healpy as hp
 
-c = const.c.to('km/s').value
-v_hubble = 3017.
-v_hubble_std = (72.**2 + 150.**2)**0.5
-planck_h = 67.74
-sigma_planck_h = 0.46
-riess_h = 73.24
-sigma_riess_h = 1.74
+def dist_from_skymap(fname,ra, dec, num_samples = 128):
+     """
+     Parameters:
+         fname (string):
+             name of the skymap file
+         ra (float):
+             RA of the counterpart (in degrees)
+         dec (float):
+             DEC of the counterpart (in degrees)
+         num_samples (int, optional):
+             number of distance samples to return
+     """
+     fname = str(fname)
+     skymap, distmu, distsigma, distnorm = hp.read_map(skymapfile,field=[0,1,2,3])
+     npix = len(distmu)
+     nside = hp.npix2nside(npix)
+     pixel = hp.ang2pix(nside, np.pi/2.0-dec*np.pi/180.0,ra*np.pi/180.0)
+     mu = distmu[pixel]
+     sigma = distsigma[pixel]
+     num = 0
+     post_samps = []
+     while num < num_samples:
+     	lkhd_samps =  sigma*np.random.randn(num_samples*2)+mu
+     	prior_wts = lkhd_samps**2
+     	rs = np.random.uniform(low=0.0, high = max(prior_wts),size = prior_wts.size)
+     	sel = rs < prior_wts
+        post_samps.append(lkhd_samps[sel])
+        num = len(post_samps)
+     return post_samps[0:num_samples]
 
 
-def measure_H0(distance_posterior, z_mean=v_hubble/c, z_std=v_hubble_std/c,
-               hmin=10, hmax=250):
-    """Measure H0
+def setup_cosmo(Om0 = 0.3, H0_default = 70.0, z_min = 0.0, z_max = 0.1, z_res = 0.0005):
+    """
+    Parameters:
+
+        Om0 (float, optional): 
+            the value of Omega_matter today for the input flat cosmology, default is 0.3 
+    """
+    cosmo = FlatLambdaCDM(H0 = H0_default, Om0 = Om0)
+    z_interp = np.linspace(z_min,z_max,np.round((z_min-z_max)/z_res))
+    z_at_dL = interp1d(cosmo.luminosity_distance(z_interp).to('Mpc').value, z_interp)
+    return z_at_dL, H0_default
+
+def measure_H0(distance_posterior, z_mean, z_std,z_at_dL, H0_default,
+               hmin=10.0, hmax=250.0, h0_res = 1.0):
+    """Calculate H0 posterior
 
     Parameters:
 
         distance_posterior (array):
-            required data channels.
+            distance posterior samples
 
         z_mean (float):
-            trigger time of event to be processing
+            observed redshift of (the host galaxy to) the counterpart, corrected by peculiar velocities
 
         z_std (float):
-            length of data to be processed
+            standard deviation of the redshift measurement
+        
+        z_at_dL (function):
+            function that returns redshift value for a given luminosity distance in Mpc
 
-        hmin (int, optional):
-            sample rate of the data desired
+        H0_default (float):
+            default H0 value in km/s/Mpc used for z_at_dL function
 
-        hmax (int, optional):
-            name of frametype in which this channel is stored, by default
-            will search for all required frame types
+        hmin (float, optional):
+            minimum of H0 prior (km/s/Mpc); default 10
+
+        hmax (float, optional):
+            maximum of H0 prior (km/s/Mpc); default 250
+
+	h0_res (float, optional):
+	    resolution of the H0 grid on which to evaluate the posterior; default is 1 km/s/Mpc precision
+
 
     Returns:
-
-        H0
+        the posterior PDF of H0, using a flat prior between hmin and hmax
     """
-    hs = linspace(hmin,hmax,600)
-    lh = zeros(size(hs))
-    ds = linspace(5,60,150)
-    zs = zeros((size(hs),size(ds)))
+    hs = np.linspace(hmin,hmax,np.round((hmax-hmin)/h0_res))
+    lh = np.zeros_like(hs)
     for i, h in enumerate(hs):
-        for j, d in enumerate(ds):
-            #zs[i,j] = z_at_value(cosmo.luminosity_distance,d*u.Mpc*cosmo.H(0).value/(100*h))
-            zs[i,j] = d*h/c
-        lh[i] = trapz(norm.pdf(zs[i],
-                               loc=z_mean,scale=z_std) * 
-                      distance_posterior.evaluate(ds), ds)
-    lh = lh/trapz(lh,hs)
+        lh[i] = np.mean(norm.pdf(z_at_dL(distance_posterior*h/H0_default),loc=z_mean, scale=z_std))
+    lh = lh/np.trapz(lh,hs)
     return hs, lh
