@@ -29,7 +29,8 @@ if sys.version < '2.6':
 import glob
 import os.path
 
-from setuptools import (setup, find_packages)
+#from setuptools import (setup, find_packages)
+from distutils.core import setup
 
 # set basic metadata
 PACKAGENAME = 'gwcosmology'
@@ -59,8 +60,8 @@ else:
 # -- dependencies -------------------------------------------------------------
 
 setup_requires = [
-    'setuptools',
-    'pytest-runner',
+#    'setuptools',
+#    'pytest-runner',
 ]
 
 install_requires = [
@@ -69,32 +70,24 @@ install_requires = [
     'matplotlib >= 1.2.0, != 2.1.0, != 2.1.1',
     'astropy >= 1.1.1, < 3.0.0 ; python_version < \'3\'',
     'astropy >= 1.1.1 ; python_version >= \'3\'',
-    'seaborn >= 0.9.0'
+#    'seaborn >= 0.9.0'
 ]
 
 tests_require = [
-    'pytest'
+#    'pytest'
 ]
 
 extras_require = {
     'doc': [
-        'ipython',
-        'sphinx',
+#        'ipython',
+#        'sphinx',
         'numpydoc',
-        'sphinx_rtd_theme',
-        'sphinxcontrib_programoutput',
+#        'sphinx_rtd_theme',
+#        'sphinxcontrib_programoutput',
     ],
 }
 
-# enum34 required for python < 3.4
-try:
-    import enum  # pylint: disable=unused-import
-except ImportError:
-    install_requires.append('enum34')
-
 # -- run setup ----------------------------------------------------------------
-
-packagenames = find_packages()
 
 setup(name=DISTNAME,
       provides=[PACKAGENAME],
@@ -105,7 +98,7 @@ setup(name=DISTNAME,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,
       scripts=glob.glob("bin/*"),
-      packages=packagenames,
+      packages=['gwcosmology', 'gwcosmology/ho', 'gwcosmology/stats'],
       include_package_data=True,
       cmdclass=cmdclass,
       setup_requires=setup_requires,
