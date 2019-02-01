@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+
+"""this script listens for redshift information that is uploaded to gracedb and then takes the redshift and fits file and computes an H_0 posterior
+and then uploads the H_0 posterior to gracedb
+It also combines it will all the previous events' likelihoods and uploads the cumulative posterior.
+In the future it will also maybe get posterior samples.
+"""
+__author__ = "maya.fishbach@ligo.org"
