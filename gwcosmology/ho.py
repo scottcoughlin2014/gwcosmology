@@ -25,13 +25,13 @@ def dist_from_skymap(fname,ra, dec, num_samples = 128):
      mu = distmu[pixel]
      sigma = distsigma[pixel]
      num = 0
-     post_samps = []
+     post_samps = np.array([])
      while num < num_samples:
      	lkhd_samps =  sigma*np.random.randn(num_samples*2)+mu
      	prior_wts = lkhd_samps**2
      	rs = np.random.uniform(low=0.0, high = max(prior_wts),size = prior_wts.size)
      	sel = rs < prior_wts
-        post_samps.append(lkhd_samps[sel])
+        post_samps = np.append(post_samps,lkhd_samps[sel])
         num = len(post_samps)
      return post_samps[0:num_samples]
 
