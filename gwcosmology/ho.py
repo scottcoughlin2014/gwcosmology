@@ -46,7 +46,7 @@ def setup_cosmo(Om0 = 0.3, H0_default = 70.0, z_min = 0.0, z_max = 0.1, z_res = 
     cosmo = FlatLambdaCDM(H0 = H0_default, Om0 = Om0)
     z_interp = np.linspace(z_min,z_max,np.round((z_min-z_max)/z_res))
     z_at_dL = interp1d(cosmo.luminosity_distance(z_interp).to('Mpc').value, z_interp)
-    return z_at_dL, H0_default
+    return z_at_dL
 
 def measure_H0(distance_posterior, z_mean, z_std,z_at_dL, H0_default,
                hmin=10.0, hmax=250.0, h0_res = 1.0):
@@ -88,3 +88,11 @@ def measure_H0(distance_posterior, z_mean, z_std,z_at_dL, H0_default,
         lh[i] = np.mean(norm.pdf(z_at_dL(distance_posterior*h/H0_default),loc=z_mean, scale=z_std))
     lh = lh/np.trapz(lh,hs)
     return hs, lh
+
+def measure_H0_from_skymap(fname, z_mean, z_std,ra, dec, Om0, H0_default, z_res, hmin, hmax, h0_res):
+     z_min = np.maximum(z_mean - 5.0*z_std,0.0)
+     z_max = z_mean+5.0*z_std
+     z_at_dL = setup_cosmo(Om0, H0_default, z_min, z_max, z_res)
+     distance_posterior = dist_from_skymap(fname,ra, dec, num_samples = 128)
+     hs, lh = measure_H0(distance_posterior, z_mean, z_std, z_at_dL, H0_default, hmin, hmax, h0_res)
+     return hs, lh
