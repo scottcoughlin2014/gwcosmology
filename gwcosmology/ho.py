@@ -18,7 +18,7 @@ def dist_from_skymap(fname,ra, dec, num_samples = 128):
              number of distance samples to return
      """
      fname = str(fname)
-     skymap, distmu, distsigma, distnorm = hp.read_map(skymapfile,field=[0,1,2,3])
+     skymap, distmu, distsigma, distnorm = hp.read_map(fname,field=[0,1,2,3])
      npix = len(distmu)
      nside = hp.npix2nside(npix)
      pixel = hp.ang2pix(nside, np.pi/2.0-dec*np.pi/180.0,ra*np.pi/180.0)
