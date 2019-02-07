@@ -44,7 +44,7 @@ def setup_cosmo(Om0 = 0.3, H0_default = 70.0, z_min = 0.0, z_max = 0.1, z_res = 
             the value of Omega_matter today for the input flat cosmology, default is 0.3 
     """
     cosmo = FlatLambdaCDM(H0 = H0_default, Om0 = Om0)
-    z_interp = np.linspace(z_min,z_max,np.round((z_min-z_max)/z_res))
+    z_interp = np.linspace(z_min,z_max,np.round((z_max-z_min)/z_res))
     z_at_dL = interp1d(cosmo.luminosity_distance(z_interp).to('Mpc').value, z_interp)
     return z_at_dL
 
