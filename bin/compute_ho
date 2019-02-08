@@ -9,8 +9,11 @@ __author__ = "maya.fishbach@ligo.org"
 
 from argparse import ArgumentParser
 import json
+import sys
 from ligo.gracedb.rest import GraceDb, DEFAULT_SERVICE_URL
 import tempfile
+
+from gwcosmology import utils
 
 parser = ArgumentParser(description = __doc__)
 parser.add_argument("-a", "--hmin", type=float, help="lower prior bound on H0 in km/s/Mpc, default = 20", default=20)
@@ -19,13 +22,23 @@ parser.add_argument("-z", "--zres", type=float, help="resolution in redshift to 
 parser.add_argument("-d", "--Hodef", type=float, help="default H0 value to use in defining cosmology functions in km/s/Mpc, default", default = 70.0)
 parser.add_argument("-m", "--Om0", type=float, help="Omega_m,0 to use in cosmology functions, default = 0.3", default = 0.3)
 parser.add_argument("-r", "--H0res", type=float, help="resolution to use when computing H0 posterior, default = 1 km/s/Mpc", default = 1.0)
-parser.add_argument("-g", "--graceid", type=str, help="Grace ID",required=True)
+parser.add_argument("-g", "--graceid", type=str, help="Grace ID", default=None)
 parser.add_argument("-G", "--graceurl", type=str, help= "GraceDB url. default ="+DEFAULT_SERVICE_URL, default=DEFAULT_SERVICE_URL)
 
 args = parser.parse_args()
 
+if args.graceid is None: # read in the graceid from an lvalert message
+    packet = json.loads(sys.stdin.read())
+    args.graceid = packet['uid']
+
+# instantiate the GraceDb object
+client = GraceDb(args.graceurl)
+
+# download redshift information AND SKY POSITION
+galasy = json.loads(client.files(args.graceid, utils.name(args.graceid)).read())
+
 #get z_mean, z_std, ra, dec from gracedb
 #get fits file from gracedb
 
-hs, lh = measure_H0_from_skymap(fname, z_mean, z_std,ra, dec, Om0, H0def, zres, hmin, hmax, H0res)
+hs, lh = measure_H0_from_skymap(fname, z_mean, z_std,ra, dec, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
  

@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 import json
 from ligo.gracedb.rest import GraceDb, DEFAULT_SERVICE_URL
 import tempfile
+from gwcosmology import utils
 
 parser = ArgumentParser(description = __doc__)
 parser.add_argument("-z", "--redshift", type=float, help="mean redshift of host galaxy", required=True)
@@ -24,5 +25,4 @@ galaxy = {'z': args.redshift, 'sigma': args.sigma, 'RA': args.RA, 'DEC': args.DE
 with tempfile.TemporaryFile() as obj:
 	obj.write(json.dumps(galaxy))
 	obj.seek(0,0)
-	gracedb.writeLog(args.graceid, "redshift information", filename = "hostgalaxy-%s.json"%args.graceid, filecontents = obj)
-
+	gracedb.writeLog(args.graceid, "redshift information", filename=utils.name(args.graceid), filecontents=obj)
