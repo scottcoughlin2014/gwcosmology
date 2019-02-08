@@ -25,4 +25,4 @@ galaxy = {'z': args.redshift, 'sigma': args.sigma, 'RA': args.RA, 'DEC': args.DE
 with tempfile.TemporaryFile() as obj:
 	obj.write(json.dumps(galaxy))
 	obj.seek(0,0)
-	gracedb.writeLog(args.graceid, "redshift information", filename=utils.name(args.graceid), filecontents=obj)
+	gracedb.writeLog(args.graceid, "redshift information", filename=utils.galaxy_name(args.graceid), filecontents=obj)

@@ -12,8 +12,9 @@ import json
 import sys
 from ligo.gracedb.rest import GraceDb, DEFAULT_SERVICE_URL
 import tempfile
-
+import h5py
 from gwcosmology import utils
+
 
 parser = ArgumentParser(description = __doc__)
 parser.add_argument("-a", "--hmin", type=float, help="lower prior bound on H0 in km/s/Mpc, default = 20", default=20)
@@ -35,10 +36,13 @@ if args.graceid is None: # read in the graceid from an lvalert message
 client = GraceDb(args.graceurl)
 
 # download redshift information AND SKY POSITION
-galasy = json.loads(client.files(args.graceid, utils.name(args.graceid)).read())
+galasy = json.loads(client.files(args.graceid, utils.galaxy_name(args.graceid)).read())
 
 #get z_mean, z_std, ra, dec from gracedb
 #get fits file from gracedb
 
 hs, lh = measure_H0_from_skymap(fname, z_mean, z_std,ra, dec, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
- 
+
+with h5py.File(utils.h0_name(args.graceid),'a') as out:
+     out.create_dataset('H0', data=hs,shuffle=True, compression='gzip')
+     out.create_dataset('pH0', data=lh,shuffle=True, compression='gzip')
