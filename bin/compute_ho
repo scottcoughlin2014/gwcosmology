@@ -14,7 +14,7 @@ from ligo.gracedb.rest import GraceDb, DEFAULT_SERVICE_URL
 import tempfile
 import h5py
 from gwcosmology import utils
-
+from gwcosmology.ho import measure_H0_from_skymap
 
 parser = ArgumentParser(description = __doc__)
 parser.add_argument("-a", "--hmin", type=float, help="lower prior bound on H0 in km/s/Mpc, default = 20", default=20)
@@ -45,10 +45,11 @@ ra = galaxy['RA']
 dec = galaxy['DEC']
 
 #get fits file from gracedb
-filenames = client.files(args.gracedb).json().keys()
+filenames = client.files(args.graceid).json().keys()
 fits = [filename for filename in filenames if filename.endswith('fits.gz') or filename.endswith('fits')]
 assert len(fits)>0, 'must have at least one FITS file!'
 chosen_skymap = fits[0] ### NOTE: we should probably be smarter about this...
+chosen_skymap = str(chosen_skymap) # we must cast to this so that the HDF5 encoder is happy
 
 with open(chosen_skymap, 'w') as out:
     out.write(client.files(args.graceid, chosen_skymap).read())
@@ -63,6 +64,7 @@ with h5py.File(hdf5_fname,'w') as out:
      dataset.attrs.create('num_H0', len(hs))
      dataset.attrs.create('skymap_file', chosen_skymap)
      dataset.attrs.create('graceid', args.graceid)
-     dataset.attrs.create('galaxy_info', galaxy)
+     for key, val in galaxy.items():
+        dataset.attrs.create(key, val)
 
-gracedb.writeLog(args.graceid, "H0 likelihood", filename=hdf5_fname)
+client.writeLog(args.graceid, "H0 likelihood", filename=hdf5_fname)

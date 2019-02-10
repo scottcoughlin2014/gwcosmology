@@ -32,6 +32,7 @@ def dist_from_skymap(fname,ra, dec, num_samples = 128):
      	rs = np.random.uniform(low=0.0, high = max(prior_wts),size = prior_wts.size)
      	sel = rs < prior_wts
         post_samps = np.append(post_samps,lkhd_samps[sel])
+        post_samps[post_samps<0] = 0.0
         num = len(post_samps)
      return post_samps[0:num_samples]
 
@@ -90,8 +91,9 @@ def measure_H0(distance_posterior, z_mean, z_std,z_at_dL, H0_default,
     return hs, lh
 
 def measure_H0_from_skymap(fname, z_mean, z_std,ra, dec, Om0, H0_default, z_res, hmin, hmax, h0_res):
-     z_min = np.maximum(z_mean - 5.0*z_std,0.0)
-     z_max = z_mean+5.0*z_std
+     #z_min = np.maximum((z_mean - 5.0*z_std)*hmin/H0_default,0.0)
+     z_min = 0.0
+     z_max = (z_mean+5.0*z_std)*hmax/H0_default
      z_at_dL = setup_cosmo(Om0, H0_default, z_min, z_max, z_res)
      distance_posterior = dist_from_skymap(fname,ra, dec, num_samples = 128)
      hs, lh = measure_H0(distance_posterior, z_mean, z_std, z_at_dL, H0_default, hmin, hmax, h0_res)
