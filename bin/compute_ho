@@ -36,13 +36,33 @@ if args.graceid is None: # read in the graceid from an lvalert message
 client = GraceDb(args.graceurl)
 
 # download redshift information AND SKY POSITION
-galasy = json.loads(client.files(args.graceid, utils.galaxy_name(args.graceid)).read())
+galaxy = json.loads(client.files(args.graceid, utils.galaxy_name(args.graceid)).read())
 
 #get z_mean, z_std, ra, dec from gracedb
+z_mean = galaxy['z']
+z_std = galaxy['sigma']
+ra = galaxy['RA']
+dec = galaxy['DEC']
+
 #get fits file from gracedb
+filenames = client.files(args.gracedb).json().keys()
+fits = [filename for filename in filenames if filename.endswith('fits.gz') or filename.endswith('fits')]
+assert len(fits)>0, 'must have at least one FITS file!'
+chosen_skymap = fits[0] ### NOTE: we should probably be smarter about this...
 
-hs, lh = measure_H0_from_skymap(fname, z_mean, z_std,ra, dec, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
+with open(chosen_skymap, 'w') as out:
+    out.write(client.files(args.graceid, chosen_skymap).read())
 
-with h5py.File(utils.h0_name(args.graceid),'a') as out:
-     out.create_dataset('H0', data=hs,shuffle=True, compression='gzip')
-     out.create_dataset('pH0', data=lh,shuffle=True, compression='gzip')
+hs, lh = measure_H0_from_skymap(chosen_skymap, z_mean, z_std, ra, dec, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
+
+hdf5_fname = utils.h0_name(args.graceid,chosen_skymap)
+with h5py.File(hdf5_fname,'w') as out:
+     dataset = out.create_dataset('H0', data=lh)
+     dataset.attrs.create('H0_start', hs[0])
+     dataset.attrs.create('dH0', hs[1]-hs[0])
+     dataset.attrs.create('num_H0', len(hs))
+     dataset.attrs.create('skymap_file', chosen_skymap)
+     dataset.attrs.create('graceid', args.graceid)
+     dataset.attrs.create('galaxy_info', galaxy)
+
+gracedb.writeLog(args.graceid, "H0 likelihood", filename=hdf5_fname)

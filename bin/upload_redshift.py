@@ -20,7 +20,7 @@ parser.add_argument("-G", "--graceurl", type=str, help= "GraceDB url. default ="
 args = parser.parse_args()
 
 gracedb = GraceDb(args.graceurl)
-
+#can move the names to utils
 galaxy = {'z': args.redshift, 'sigma': args.sigma, 'RA': args.RA, 'DEC': args.DEC}
 with tempfile.TemporaryFile() as obj:
 	obj.write(json.dumps(galaxy))
