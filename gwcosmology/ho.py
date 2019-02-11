@@ -86,15 +86,14 @@ def measure_H0(distance_posterior, z_mean, z_std,z_at_dL, H0_default,
     hs = np.linspace(hmin,hmax,np.round((hmax-hmin)/h0_res))
     lh = np.zeros_like(hs)
     for i, h in enumerate(hs):
-        lh[i] = np.mean(norm.pdf(z_at_dL(distance_posterior*h/H0_default),loc=z_mean, scale=z_std))
+        lh[i] = np.mean(norm.pdf(z_at_dL(distance_posterior)*h/H0_default,loc=z_mean, scale=z_std))
     lh = lh/np.trapz(lh,hs)
     return hs, lh
 
 def measure_H0_from_skymap(fname, z_mean, z_std,ra, dec, Om0, H0_default, z_res, hmin, hmax, h0_res):
-     #z_min = np.maximum((z_mean - 5.0*z_std)*hmin/H0_default,0.0)
-     z_min = 0.0
-     z_max = (z_mean+5.0*z_std)*hmax/H0_default
-     z_at_dL = setup_cosmo(Om0, H0_default, z_min, z_max, z_res)
      distance_posterior = dist_from_skymap(fname,ra, dec, num_samples = 128)
+     z_min = np.maximum(np.amin(distance_posterior)*hmin/3e5,0.0)
+     z_max = np.amax(distance_posterior)*hmax/3e5
+     z_at_dL = setup_cosmo(Om0, H0_default, z_min, z_max, z_res)
      hs, lh = measure_H0(distance_posterior, z_mean, z_std, z_at_dL, H0_default, hmin, hmax, h0_res)
      return hs, lh
