@@ -5,14 +5,14 @@ and then uploads the H_0 posterior to gracedb
 It also combines it will all the previous events' likelihoods and uploads the cumulative posterior.
 In the future it will also maybe get posterior samples.
 """
-__author__ = "maya.fishbach@ligo.org"
+__author__ = "maya.fishbach@ligo.org, reed.essick@ligo.org"
 
 from argparse import ArgumentParser
 import json
 import sys
 from ligo.gracedb.rest import GraceDb, DEFAULT_SERVICE_URL
 import tempfile
-import h5py
+#import h5py
 from gwcosmology import utils
 from gwcosmology.ho import measure_H0_from_skymap
 
@@ -25,6 +25,7 @@ parser.add_argument("-m", "--Om0", type=float, help="Omega_m,0 to use in cosmolo
 parser.add_argument("-r", "--H0res", type=float, help="resolution to use when computing H0 posterior in km/s/Mpc, default = 1", default = 1.0)
 parser.add_argument("-g", "--graceid", type=str, help="Grace ID", default=None)
 parser.add_argument("-G", "--graceurl", type=str, help= "GraceDB url. default ="+DEFAULT_SERVICE_URL, default=DEFAULT_SERVICE_URL)
+parser.add_argument("-n", "--galaxyname", type=str, help= "name of the host galaxy", default = None)
 
 args = parser.parse_args()
 
@@ -35,17 +36,24 @@ if args.graceid is None: # read in the graceid from an lvalert message
 # instantiate the GraceDb object
 client = GraceDb(args.graceurl)
 
-# download redshift information AND SKY POSITION
-galaxy = json.loads(client.files(args.graceid, utils.galaxy_name(args.graceid)).read())
+# get list of all the files associated with the GraceID
+filenames = client.files(args.graceid).json().keys() 
+# download redshift information, sky position, and galaxy name
+if args.galaxyname is None:
+    galaxyfiles = [filename for filename in filenames if filename.startswith('galaxy-')]
+    chosen_galaxyfile = galaxyfiles[0]
+else:
+    chosen_galaxyfile = utils.galaxy_name(args.graceid,args.galaxyname)   
+galaxy = json.loads(client.files(args.graceid, chosen_galaxyfile).read()) 
 
-#get z_mean, z_std, ra, dec from gracedb
+#get z_mean, z_std, ra, dec, name from gracedb
 z_mean = galaxy['z']
 z_std = galaxy['sigma']
 ra = galaxy['RA']
 dec = galaxy['DEC']
+name = galaxy['name']
 
 #get fits file from gracedb
-filenames = client.files(args.graceid).json().keys()
 fits = [filename for filename in filenames if filename.endswith('fits.gz') or filename.endswith('fits')]
 assert len(fits)>0, 'must have at least one FITS file!'
 chosen_skymap = fits[0] ### NOTE: we should probably be smarter about this...
@@ -54,17 +62,18 @@ chosen_skymap = str(chosen_skymap) # we must cast to this so that the HDF5 encod
 with open(chosen_skymap, 'w') as out:
     out.write(client.files(args.graceid, chosen_skymap).read())
 
+#calculate the H0 likelihood
 hs, lh = measure_H0_from_skymap(chosen_skymap, z_mean, z_std, ra, dec, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
 
-hdf5_fname = utils.h0_name(args.graceid,chosen_skymap)
-with h5py.File(hdf5_fname,'w') as out:
-     dataset = out.create_dataset('H0', data=lh)
-     dataset.attrs.create('H0_start', hs[0])
-     dataset.attrs.create('dH0', hs[1]-hs[0])
-     dataset.attrs.create('num_H0', len(hs))
-     dataset.attrs.create('skymap_file', chosen_skymap)
-     dataset.attrs.create('graceid', args.graceid)
-     for key, val in galaxy.items():
-        dataset.attrs.create(key, val)
+#collect all data in a dictionary
+h0data = {'H0_start': hs[0], 'dH0': hs[1]-hs[0], 'num_H0': len(hs), 'H0_likelihood': lh.tolist()}
+alldata = {'z': z_mean, 'sigma_z': z_std, 'RA': ra, 'DEC': dec, 'galaxy': name, 'skymap_file': chosen_skymap, 'GraceID': args.graceid, 'H0': h0data}
 
-client.writeLog(args.graceid, "H0 likelihood", filename=hdf5_fname)
+#output to json file
+
+json_fname = utils.h0_name(args.graceid,chosen_skymap,name)
+
+with tempfile.TemporaryFile() as obj:
+        obj.write(json.dumps(alldata))
+        obj.seek(0,0)
+        client.writeLog(args.graceid, "H0 likelihood", filename=json_fname, filecontents=obj)

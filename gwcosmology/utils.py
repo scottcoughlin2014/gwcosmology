@@ -1,19 +1,19 @@
 """some basic helper functions
 """
-__author__ = "smart people"
+__author__ = "maya.fishbach@ligo.org, reed.essick@ligo.org"
 
 #-------------------------------------------------
 
-def galaxy_name(graceid):
+def galaxy_name(graceid,galaxyname):
     "generate a standard filename for galaxy information"
-    return "galaxy-%s.json"%graceid
+    return "galaxy-%s-%s.json"%(graceid,galaxyname)
 
-def h0_name(graceid,chosen_skymap):
+def h0_name(graceid,chosen_skymap,galaxyname):
     "generate a standard filename for H0 posterior"
     skyname = chosen_skymap.split('.')[0]
-    return "H0-%s-%s.h5"%(graceid,skyname)
+    return "H0-%s-%s-%s.json"%(graceid,skyname,galaxyname)
 
-def H0_plot_name(gid,chosen_skymap):
+def H0_plot_name(graceid,chosen_skymap,galaxyname):
      "generate a standard filename for H0 plot"
      skyname = chosen_skymap.split('.')[0]
-     return "H0-%s-%s.png"%(gid,skyname)
+     return "H0-%s-%s-%s.png"%(graceid,skyname,galaxyname)
