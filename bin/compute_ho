@@ -12,7 +12,6 @@ import json
 import sys
 from ligo.gracedb.rest import GraceDb, DEFAULT_SERVICE_URL
 import tempfile
-#import h5py
 from gwcosmology import utils
 from gwcosmology.ho import measure_H0_from_skymap
 
@@ -77,3 +76,5 @@ with tempfile.TemporaryFile() as obj:
         obj.write(json.dumps(alldata))
         obj.seek(0,0)
         client.writeLog(args.graceid, "H0 likelihood", filename=json_fname, filecontents=obj)
+
+#update H0files dictionary with {'graceid' : [list of files]} in manifest.json file 
