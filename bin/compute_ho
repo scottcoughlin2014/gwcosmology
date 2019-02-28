@@ -13,7 +13,7 @@ import sys
 from ligo.gracedb.rest import GraceDb, DEFAULT_SERVICE_URL
 import tempfile
 from gwcosmology import utils
-from gwcosmology.ho import measure_H0_from_skymap
+from gwcosmology.ho import measure_H0_from_skymap, measure_H0_from_datfile
 
 parser = ArgumentParser(description = __doc__)
 parser.add_argument("-a", "--hmin", type=float, help="lower prior bound on H0 in km/s/Mpc, default = 20", default=20)
@@ -25,7 +25,7 @@ parser.add_argument("-r", "--H0res", type=float, help="resolution to use when co
 parser.add_argument("-g", "--graceid", type=str, help="Grace ID", default=None)
 parser.add_argument("-G", "--graceurl", type=str, help= "GraceDB url. default ="+DEFAULT_SERVICE_URL, default=DEFAULT_SERVICE_URL)
 parser.add_argument("-n", "--galaxyname", type=str, help= "name of the host galaxy", default = None)
-
+parser.add_argument("-P", "--PEsamps", action = 'store_true')
 args = parser.parse_args()
 
 if args.graceid is None: # read in the graceid from an lvalert message
@@ -52,25 +52,37 @@ ra = galaxy['RA']
 dec = galaxy['DEC']
 name = galaxy['name']
 
+if args.PEsamps is False:
 #get fits file from gracedb
-fits = [filename for filename in filenames if filename.endswith('fits.gz') or filename.endswith('fits')]
-assert len(fits)>0, 'must have at least one FITS file!'
-chosen_skymap = fits[0] ### NOTE: we should probably be smarter about this...
-chosen_skymap = str(chosen_skymap) # we must cast to this so that the HDF5 encoder is happy
+    fits = [filename for filename in filenames if filename.endswith('fits.gz') or filename.endswith('fits')]
+    assert len(fits)>0, 'must have at least one FITS file!'
+    chosen_skymap = fits[0] ### NOTE: we should probably be smarter about this...
+    skymap_or_PE_file = str(chosen_skymap) # we must cast to this so that the HDF5 encoder is happy
 
-with open(chosen_skymap, 'w') as out:
-    out.write(client.files(args.graceid, chosen_skymap).read())
+    with open(chosen_skymap, 'w') as out:
+       out.write(client.files(args.graceid, chosen_skymap).read())
 
-#calculate the H0 likelihood
-hs, lh = measure_H0_from_skymap(chosen_skymap, z_mean, z_std, ra, dec, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
+    #calculate the H0 likelihood
+    hs, lh = measure_H0_from_skymap(chosen_skymap, z_mean, z_std, ra, dec, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
+
+
+else:
+#get .dat file from gracedb
+    dats = [filename for filename in filenames if filename.endswith('.dat')]
+    assert len(dats) > 0, 'must have at least one .DAT file!'
+    chosen_PEfile = dats[0] ### NOTE: be smarter here too
+    skymap_or_PE_file = str(chosen_PEfile)
+    with open(chosen_PEfile, 'w') as out:
+       out.write(client.files(args.graceid, chosen_PEfile).read())
+    #calculate H0 likelihood
+    hs, lh = measure_H0_from_datfile(chosen_PEfile, utils.distance_name, z_mean, z_std, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
 
 #collect all data in a dictionary
 h0data = {'H0_start': hs[0], 'dH0': hs[1]-hs[0], 'num_H0': len(hs), 'H0_likelihood': lh.tolist()}
-alldata = {'z': z_mean, 'sigma_z': z_std, 'RA': ra, 'DEC': dec, 'galaxy': name, 'skymap_file': chosen_skymap, 'GraceID': args.graceid, 'H0': h0data}
+alldata = {'z': z_mean, 'sigma_z': z_std, 'RA': ra, 'DEC': dec, 'galaxy': name, 'skymap_or_PE_file': skymap_or_PE_file, 'GraceID': args.graceid, 'H0': h0data}
 
 #output to json file
-
-json_fname = utils.h0_name(args.graceid,chosen_skymap,name)
+json_fname = utils.h0_name(args.graceid,skymap_or_PE_file,name,args.PEsamps)
 
 with tempfile.TemporaryFile() as obj:
         obj.write(json.dumps(alldata))

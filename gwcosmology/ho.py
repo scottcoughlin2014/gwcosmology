@@ -5,7 +5,7 @@ from astropy.cosmology import FlatLambdaCDM
 import astropy.units as u
 import healpy as hp
 
-def dist_from_skymap(fname,ra, dec, num_samples = 128):
+def dist_from_skymap(fname,ra, dec, num_samples = 512):
      """
      Parameters:
          fname (string):
@@ -35,6 +35,17 @@ def dist_from_skymap(fname,ra, dec, num_samples = 128):
         post_samps[post_samps<0] = 0.0
         num = len(post_samps)
      return post_samps[0:num_samples]
+
+def dist_from_datfile(fname, distance_name = 'distance'):
+    """
+    Parameters:
+        fname (string): name of the posterior sample (ASCII) file
+        distance_name (string): name of the column containing luminosity distance (Mpc) in the file
+    """
+    fname = str(fname)
+    distance_name = str(distance_name)
+    posts = np.genfromtxt(fname, names=True)
+    return posts[distance_name]
 
 
 def setup_cosmo(Om0 = 0.3, H0_default = 70.0, z_min = 0.0, z_max = 0.1, z_res = 0.0005):
@@ -92,8 +103,16 @@ def measure_H0(distance_posterior, z_mean, z_std,z_at_dL, H0_default,
 
 def measure_H0_from_skymap(fname, z_mean, z_std,ra, dec, Om0, H0_default, z_res, hmin, hmax, h0_res):
      distance_posterior = dist_from_skymap(fname,ra, dec, num_samples = 128)
-     z_min = np.maximum(np.amin(distance_posterior)*hmin/3e5,0.0)
-     z_max = np.amax(distance_posterior)*hmax/3e5
+     z_min = np.maximum(np.amin(distance_posterior)*hmin/3e5-0.1,0.0) #go down to z-0.1 below just in case
+     z_max = np.amax(distance_posterior)*hmax/3e5+0.1 #go up to z+0.1 just in case
+     z_at_dL = setup_cosmo(Om0, H0_default, z_min, z_max, z_res)
+     hs, lh = measure_H0(distance_posterior, z_mean, z_std, z_at_dL, H0_default, hmin, hmax, h0_res)
+     return hs, lh
+
+def measure_H0_from_datfile(fname, distance_name, z_mean, z_std, Om0, H0_default, z_res, hmin, hmax, h0_res):
+     distance_posterior = dist_from_datfile(fname,distance_name)
+     z_min = np.maximum(np.amin(distance_posterior)*hmin/3e5-0.1,0.0) #go down to z-0.1 below just in case
+     z_max = np.amax(distance_posterior)*hmax/3e5+0.1 #go up to z+0.1 just in case
      z_at_dL = setup_cosmo(Om0, H0_default, z_min, z_max, z_res)
      hs, lh = measure_H0(distance_posterior, z_mean, z_std, z_at_dL, H0_default, hmin, hmax, h0_res)
      return hs, lh
