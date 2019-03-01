@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-"""this script listens for redshift information that is uploaded to gracedb and then takes the redshift and fits file and computes an H_0 posterior
-and then uploads the H_0 posterior to gracedb
-It also combines it will all the previous events' likelihoods and uploads the cumulative posterior.
-In the future it will also maybe get posterior samples.
+"""this script listens for redshift information that is uploaded to gracedb and then takes the redshift and fits file and computes an H_0 likelihood
+and then uploads the H_0 likelihood as a json file to gracedb
+There is also an option to use a .dat PE sample file, if available on gracedb, instead of a skymap fits file. 
+A single event may have multiple skymap/ PE samples/ host galaxy information files, which would result in a different H_0 likelihood file with a unique name.
+The final H_0 posterior can be computed with any combination of these files, as long as there is a maximum of one per event.
 """
 __author__ = "maya.fishbach@ligo.org, reed.essick@ligo.org"
 
@@ -14,6 +15,7 @@ from ligo.gracedb.rest import GraceDb, DEFAULT_SERVICE_URL
 import tempfile
 from gwcosmology import utils
 from gwcosmology.ho import measure_H0_from_skymap, measure_H0_from_datfile
+import os
 
 parser = ArgumentParser(description = __doc__)
 parser.add_argument("-a", "--hmin", type=float, help="lower prior bound on H0 in km/s/Mpc, default = 20", default=20)
@@ -75,7 +77,7 @@ else:
     with open(chosen_PEfile, 'w') as out:
        out.write(client.files(args.graceid, chosen_PEfile).read())
     #calculate H0 likelihood
-    hs, lh = measure_H0_from_datfile(chosen_PEfile, utils.distance_name, z_mean, z_std, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
+    hs, lh = measure_H0_from_datfile(chosen_PEfile, utils.distance_name(), z_mean, z_std, args.Om0, args.Hodef, args.zres, args.hmin, args.hmax, args.H0res)
 
 #collect all data in a dictionary
 h0data = {'H0_start': hs[0], 'dH0': hs[1]-hs[0], 'num_H0': len(hs), 'H0_likelihood': lh.tolist()}
@@ -85,8 +87,38 @@ alldata = {'z': z_mean, 'sigma_z': z_std, 'RA': ra, 'DEC': dec, 'galaxy': name, 
 json_fname = utils.h0_name(args.graceid,skymap_or_PE_file,name,args.PEsamps)
 
 with tempfile.TemporaryFile() as obj:
-        obj.write(json.dumps(alldata))
-        obj.seek(0,0)
-        client.writeLog(args.graceid, "H0 likelihood", filename=json_fname, filecontents=obj)
+    obj.write(json.dumps(alldata))
+    obj.seek(0,0)
+    client.writeLog(args.graceid, "H0 likelihood", filename=json_fname, filecontents=obj)
 
 #update H0files dictionary with {'graceid' : [list of files]} in manifest.json file 
+manifest_exists = os.path.isfile(utils.H0files_dict_name(args.PEsamps))
+if manifest_exists:
+    with open(utils.H0files_dict_name(args.PEsamps), 'r') as f:
+        H0files = json.load(f)
+        if args.graceid in H0files.keys():
+            set(H0files[args.graceid]).add(json_fname)
+        else:
+            H0files[args.graceid] = [json_fname]
+    with open(utils.H0files_dict_name(args.PEsamps),'w') as out:
+        json.dump(H0files,out)
+else:
+    with open(utils.H0files_dict_name(args.PEsamps), 'w') as out:
+        H0files = {args.graceid: [json_fname]}
+        json.dump(H0files,out)
+#even if using public sky map, add it to private manifest file as well
+if args.PEsamps is False:
+    private_manifest_exists = os.path.isfile(utils.H0files_dict_name(True))
+    if private_manifest_exists:
+        with open(utils.H0files_dict_name(True), 'r') as f:
+            H0files = json.load(f)
+            if args.graceid in H0files.keys():
+                set(H0files[args.graceid]).add(json_fname)
+            else:
+                H0files[args.graceid] = [json_fname]
+        with open(utils.H0files_dict_name(True),'w') as out:
+            json.dump(H0files,out)
+    else:
+        with open(utils.H0files_dict_name(True), 'w') as out:
+            H0files = {args.graceid: [json_fname]}
+            json.dump(H0files,out)

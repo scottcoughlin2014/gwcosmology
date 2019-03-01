@@ -3,7 +3,10 @@
 __author__ = "maya.fishbach@ligo.org, reed.essick@ligo.org"
 
 #-------------------------------------------------
-distance_name = 'distance'
+
+def distance_name(): 
+    "name of the distance column in the PE file"
+    return 'distance'
 
 def galaxy_name(graceid,galaxyname):
     "generate a standard filename for galaxy information"
@@ -21,3 +24,11 @@ def H0_plot_name(graceid,chosen_skymap,galaxyname):
      "generate a standard filename for H0 plot"
      skyname = chosen_skymap.split('.')[0]
      return "H0-%s-%s-%s.png"%(graceid,skyname,galaxyname)
+
+def H0files_dict_name(private):
+     "generate a standard filename for json dictionary containing all available H0 likelihoods"
+     if private is True:
+         return "manifest-private.json"
+     else:
+         return "manifest-public.json"
+
