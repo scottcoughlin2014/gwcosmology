@@ -9,7 +9,7 @@ import json
 from ligo.gracedb.rest import GraceDb, DEFAULT_SERVICE_URL
 import tempfile
 from gwcosmology import utils
-
+import os
 parser = ArgumentParser(description = __doc__)
 parser.add_argument("-z", "--redshift", type=float, help="mean redshift of host galaxy", required=True)
 parser.add_argument("-s", "--sigma", type=float, help="standard deviation of redshift",required=True)
@@ -27,3 +27,18 @@ with tempfile.TemporaryFile() as obj:
 	obj.write(json.dumps(galaxy))
 	obj.seek(0,0)
 	gracedb.writeLog(args.graceid, "redshift information", filename=utils.galaxy_name(args.graceid,args.name), filecontents=obj)
+
+GID_list_fname = '/home/maya.fishbach/public_html/H0_calculator/GID_list.json'
+manifest_exists = os.path.isfile(GID_list_fname)
+if manifest_exists:
+    with open(GID_list_fname, 'r') as f:
+        GID_list = json.load(f)
+        GID_set = set(GID_list['GIDs'])
+        GID_set.add(args.graceid)
+        GID_list['GIDs']=list(GID_set)
+    with open(GID_list_fname,'w') as out:
+        json.dump(GID_list,out)
+else:
+    with open(GID_list_fname, 'w') as out:
+        GID_list = {'GIDs': [args.graceid]}
+        json.dump(GID_list,out)
