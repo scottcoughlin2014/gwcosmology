@@ -27,10 +27,10 @@ def dist_from_skymap(fname,ra, dec, num_samples = 512):
      num = 0
      post_samps = np.array([])
      while num < num_samples:
-     	lkhd_samps =  sigma*np.random.randn(num_samples*2)+mu
-     	prior_wts = lkhd_samps**2
-     	rs = np.random.uniform(low=0.0, high = max(prior_wts),size = prior_wts.size)
-     	sel = rs < prior_wts
+        lkhd_samps =  sigma*np.random.randn(num_samples*2)+mu
+        prior_wts = lkhd_samps**2
+        rs = np.random.uniform(low=0.0, high = max(prior_wts),size = prior_wts.size)
+        sel = rs < prior_wts
         post_samps = np.append(post_samps,lkhd_samps[sel])
         post_samps[post_samps<0] = 0.0
         num = len(post_samps)
@@ -87,8 +87,8 @@ def measure_H0(distance_posterior, z_mean, z_std,z_at_dL, H0_default,
         hmax (float, optional):
             maximum of H0 prior (km/s/Mpc); default 250
 
-	h0_res (float, optional):
-	    resolution of the H0 grid on which to evaluate the posterior; default is 1 km/s/Mpc precision
+        h0_res (float, optional):
+            resolution of the H0 grid on which to evaluate the posterior; default is 1 km/s/Mpc precision
 
 
     Returns:
